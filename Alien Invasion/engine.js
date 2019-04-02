@@ -79,3 +79,72 @@ var SpriteSheet = new function() {
     ctx.drawImage(this.image, s.sx + frame * s.w, s.sy, s.w, s.h, x, y, s.w, s.h);
   };
 }();
+
+var GameBoard = function() {
+  var board = this;
+  this.objects = [];
+  this.cnt = [];
+
+  //  定义添加游戏组件对象的方法
+  this.add = function(obj) {
+    obj.board = this;
+    this.objects.push(obj);
+    this.cnt[obj.type] = (this.cnt[obj.type] || 0) + 1;
+    return obj;
+  };
+
+  //  删除某一个游戏组件对象
+  this.remove = function(obj) {
+    var wasStillAlive = this.removed.indexOf(obj) !== -1;
+    if (wasStillAlive) {
+      this.removed.push(obj);
+    }
+    return wasStillAlive;
+  };
+
+  //  重置整个删除数组
+  this.resetRemoved = function() {
+    this.removed = [];
+  };
+
+  //  真正删除的方法
+  this.finalizeRemoved = function() {
+    for (let i = 0; i < this.removed.length; i += 1) {
+      var idx = this.objects.indexOf(this.removed[i]);
+      if (idx !== -1) {
+        this.cnt[this.removed[i].type] -= 1;
+        this.objects.splice(idx, 1);
+      }
+    }
+  };
+
+  //  辅助的遍历方法，该方法调用对象列表中的每个对象的同一个函数
+  this.iterate = function(funcName) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    for (let i = 0; i < this.objects.length; i += 1) {
+      var obj = this.objects[i];
+      obj[funcName].apply(obj, args);
+    }
+  };
+
+  //  碰撞检测，看看之后怎么使用
+  this.detect = function(func) {
+    for (let i = 0; i < this.objects.length; i += 1) {
+      if (func.call(this.objects[i])) {
+        return this.objects[i];
+      }
+    }
+    return false;
+  };
+
+  //  基础方法
+  this.step = function(dt) {
+    this.resetRemoved();
+    this.iterate('step', dt);
+    this.finalizeRemoved();
+  };
+
+  this.draw = function(ctx) {
+    this.iterate('draw', ctx);
+  };
+};
